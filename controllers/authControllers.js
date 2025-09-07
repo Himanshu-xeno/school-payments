@@ -2,6 +2,13 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// Helper: Generate JWT
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
+};
+
 // Register User
 export const registerUser = async (req, res) => {
   try {
@@ -21,12 +28,13 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role
+      role,
     });
 
     res.status(201).json({
       message: "User registered successfully",
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      token: generateToken(user._id, user.role), // ✅ return token on register
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -47,15 +55,11 @@ export const loginUser = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     // Create JWT token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = generateToken(user._id, user.role);
 
     res.json({
       message: "Login successful",
-      token
+      token,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
